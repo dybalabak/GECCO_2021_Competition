@@ -11,15 +11,17 @@ def crane_schedule(world):
     for buf in world.Buffers:
         min_time2 = 9999999999
         bottom_to_top2 = buf.BottomToTop
+        emergent_Id = -1
         for each_block in bottom_to_top2:
             if min_time2 > int(str(each_block.Due).split(':')[1]):
                 min_time2 = int(str(each_block.Due).split(':')[1])
-        min_time_list2.append([buf, min_time2])
+                emergent_Id = each_block.Id
+        min_time_list2.append([buf, min_time2, emergent_Id])
     min_time_list2.sort(key=lambda x: x[1]) # time sort
     #min_time_list2.reverse()
 
     for i, each_block2 in enumerate(min_time_list2[0][0].BottomToTop):
-        if each_block2.Ready:
+        if each_block2.Id == min_time_list2[0][2] and each_block2.Ready:
             print('each_block', each_block2, file=out)
             upper_buf_len = len(min_time_list2[0][0].BottomToTop) - i - 1
             print('upper_buf_len', upper_buf_len, file=out)
