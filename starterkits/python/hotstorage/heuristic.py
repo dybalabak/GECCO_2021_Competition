@@ -1,7 +1,5 @@
 from hotstorage.hotstorage_model_pb2 import World, CraneSchedule, CraneMove
 
-out = open('output.txt', 'w')
-
 def crane_schedule(world):
     if len(world.Crane.Schedule.Moves) > 0:
         return None
@@ -22,9 +20,7 @@ def crane_schedule(world):
 
     for i, each_block2 in enumerate(min_time_list2[0][0].BottomToTop):
         if each_block2.Id == min_time_list2[0][2] and each_block2.Ready:
-            print('each_block', each_block2, file=out)
             upper_buf_len = len(min_time_list2[0][0].BottomToTop) - i - 1
-            print('upper_buf_len', upper_buf_len, file=out)
             #if world.Handover.ready:
             buf_len_list = list()
             for buf in world.Buffers:
