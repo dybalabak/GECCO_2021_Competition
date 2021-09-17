@@ -1,110 +1,228 @@
 from hotstorage.hotstorage_model_pb2 import World, CraneSchedule, CraneMove
+import math
+
+#out = open('data.txt', 'w')
+
+def except_target_priority(world, source_buf, except_block, except_buf):
+    list = []
+    for buf in world.Buffers:
+        check = 0
+        if buf == source_buf:
+            continue
+        if buf == except_buf:
+            check = 1
+        if len(buf.BottomToTop) < buf.MaxHeight:
+            if len(buf.BottomToTop) > check:
+                if check == 1:
+                    blockList = []
+                    for block in buf.BottomToTop:
+                        if block == except_block:
+                            continue
+                        blockList.append(block)
+                    block = min(blockList, key=lambda block: block.Due.MilliSeconds)
+                else:
+                    block = min(buf.BottomToTop, key=lambda block: block.Due.MilliSeconds)
+                list.append([block.Ready, block.Due.MilliSeconds, block, buf])
+            else:
+                list.append([False, math.inf, None, buf])
+    if list:
+        list.sort(key=lambda x : -x[1])
+        return list[0][3].Id
+    else:
+        return source_buf.Id
+
+def target_priority(world, source_buf):
+    list = []
+    for buf in world.Buffers:
+        if buf == source_buf:
+            continue
+        if len(buf.BottomToTop) < buf.MaxHeight:
+            if buf.BottomToTop:
+                block = min(buf.BottomToTop, key=lambda block: block.Due.MilliSeconds)
+                list.append([block.Ready, block.Due.MilliSeconds, block, buf])
+            else:
+                list.append([False, math.inf, None, buf])
+    if list:
+        list.sort(key=lambda x : -x[1])
+        return list[0][3].Id
+    else:
+        return source_buf.Id
+
+def source_priority(world):
+    list = []
+    for buf in world.Buffers:
+        if len(buf.BottomToTop) > 0:
+            if buf.BottomToTop:
+                block = min(buf.BottomToTop, key=lambda block: block.Due.MilliSeconds)
+                list.append([block, buf])
+    list.sort(key=lambda x : x[0].Due.MilliSeconds)
+    if len(list) == len(world.Buffers):
+        del list[len(list) - 1]
+    return list
+
+def top_priority(world):
+    list = []
+    for buf in world.Buffers:
+        if len(buf.BottomToTop) > 0:
+            block = buf.BottomToTop[-1]
+            list.append([block.Ready, block.Due.MilliSeconds, block, buf])
+    list.sort(key=lambda x : (-x[0], x[1]))
+    return list[0][2], list[0][3]
+
+def total_block(world):
+    list = []
+    for buf in world.Buffers:
+        if len(buf.BottomToTop) > 0:
+            for block in buf.BottomToTop:
+                list.append([block.Ready, block.Due.MilliSeconds, block, buf])
+    list.sort(key=lambda x : (x[1], -x[0]))
+    return list
+
+def check_block_percentage(world, check_percentage):
+    buf_count = 0
+    buf_total_count = 0
+    for buf in world.Buffers:
+        buf_total_count += buf.MaxHeight
+        buf_count += len(buf.BottomToTop)
+    print('buf_total_count', buf_total_count)
+    print('buf_count', buf_count)
+    if buf_count / buf_total_count > check_percentage:
+        print('//', buf_count / buf_total_count)
+        return 1
+    else:
+        return 0
+
+def check_empty_block_space(world):
+    buf_count = 0
+    aboveBlock = block_list[i][3].BottomToTop[-1]
+    
+
+
 
 def crane_schedule(world):
     if len(world.Crane.Schedule.Moves) > 0:
         return None
     schedule = CraneSchedule()
 
-    min_time_list2 = list()
-    for buf in world.Buffers:
-        min_time2 = 9999999999
-        bottom_to_top2 = buf.BottomToTop
-        emergent_Id = -1
-        for each_block in bottom_to_top2:
-            if min_time2 > int(str(each_block.Due).split(':')[1]):
-                min_time2 = int(str(each_block.Due).split(':')[1])
-                emergent_Id = each_block.Id
-        min_time_list2.append([buf, min_time2, emergent_Id])
-    min_time_list2.sort(key=lambda x: x[1]) # time sort
-    #min_time_list2.reverse()
-
-    for i, each_block2 in enumerate(min_time_list2[0][0].BottomToTop):
-        if each_block2.Id == min_time_list2[0][2] and each_block2.Ready:
-            upper_buf_len = len(min_time_list2[0][0].BottomToTop) - i - 1
-            #if world.Handover.ready:
-            buf_len_list = list()
-            for buf in world.Buffers:
-                buf_len_list.append([buf.Id ,len(buf.BottomToTop)])
-            
-            buf_len_list.sort(key=lambda x: x[1])
-
-            for i, buf in enumerate(buf_len_list):
-                if buf[0] == min_time_list2[0][0].Id:
-                    del buf_len_list[i]
-                    break
-
-            #while upper_buf_len > 0:
-            if upper_buf_len != 0:
-                mov = schedule.Moves.add()
-                mov.BlockId = min_time_list2[0][0].BottomToTop[-1].Id
-                mov.SourceId = min_time_list2[0][0].Id
-                mov.TargetId = buf_len_list[0][0]
-                return schedule
-            else:
-                mov = schedule.Moves.add()
-                mov.BlockId = min_time_list2[0][0].BottomToTop[-1].Id
-                mov.SourceId = min_time_list2[0][0].Id
-                mov.TargetId = world.Handover.Id
-                return schedule
-        else:
-            pass
-    
-    '''
-    for buf_with_time2 in min_time_list2:
-        for i, each_block2 enumerate buf_with_time2[0].BottomToTop:
-            if each_block2.ready:
-                upper_buf_len = len(each_block2) - i - 1
-            else:
-                pass
-    '''
-    
-    if len(world.Production.BottomToTop) > 0 and str(world.Now) != '':
-        for blk in world.Production.BottomToTop:
-            if int(str(blk.Due).split(' ')[1]) - int(str(world.Now).split(' ')[1]) < 60000:
-                block = world.Production.BottomToTop[-1]
-                min_time_list = list()
-                for buf in world.Buffers:
-                    min_time = 9999999999
-                    bottom_to_top = buf.BottomToTop
-                    for each_block in bottom_to_top:
-                        if min_time > int(str(each_block.Due).split(':')[1]):
-                            min_time = int(str(each_block.Due).split(':')[1])
-                    min_time_list.append([buf, min_time])
-                min_time_list.sort(key=lambda x: x[1]) # time sort
-                min_time_list.reverse()
-                for buf_with_time in min_time_list:
-                    if buf_with_time[0].MaxHeight > len(buf_with_time[0].BottomToTop):
-                        mov = schedule.Moves.add()
-                        mov.BlockId = block.Id
-                        mov.SourceId = world.Production.Id
-                        mov.TargetId = buf_with_time[0].Id
+    #9.17
+    if check_block_percentage(world, 0.8):
+        block_list = total_block(world)
+        for i in range(len(block_list)):
+            if block_list[i][0]:
+                if block_list[i][2] == block_list[i][3].BottomToTop[-1]:
+                    if world.Handover.Ready:
+                        mov_handover = schedule.Moves.add()
+                        mov_handover.BlockId = block_list[i][2].Id
+                        mov_handover.SourceId = block_list[i][3].Id
+                        mov_handover.TargetId = world.Handover.Id
                         return schedule
-    if len(world.Production.BottomToTop) > world.Production.MaxHeight - 2:
-        block = world.Production.BottomToTop[-1]
-        min_time_list = list()
-        for buf in world.Buffers:
-            min_time = 9999999999
-            bottom_to_top = buf.BottomToTop
-            for each_block in bottom_to_top:
-                if min_time > int(str(each_block.Due).split(':')[1]):
-                    min_time = int(str(each_block.Due).split(':')[1])
-            min_time_list.append([buf, min_time])
-        min_time_list.sort(key=lambda x: x[1]) # time sort
-        min_time_list.reverse()
-        for buf_with_time in min_time_list:
-            if buf_with_time[0].MaxHeight > len(buf_with_time[0].BottomToTop):
-                mov = schedule.Moves.add()
-                mov.BlockId = block.Id
-                mov.SourceId = world.Production.Id
-                mov.TargetId = buf_with_time[0].Id
+
+                    elif len(block_list[i][3].BottomToTop) == 1:
+                        mov_buffer = schedule.Moves.add()
+                        mov_buffer.BlockId = block_list[i][2].Id
+                        mov_buffer.SourceId = block_list[i][3].Id
+                        mov_buffer.TargetId = target_priority(world, block_list[i][3])
+                        return schedule
+
+                    else:
+                        continue
+
+                else:
+                    aboveBlock = block_list[i][3].BottomToTop[-1]
+                    
+                    if aboveBlock.Ready and world.Handover.Ready:
+                        mov_handover = schedule.Moves.add()
+                        mov_handover.BlockId = aboveBlock.Id
+                        mov_handover.SourceId = block_list[i][3].Id
+                        mov_handover.TargetId = world.Handover.Id
+                        return schedule
+                    else:
+                        mov_buffer = schedule.Moves.add()
+                        mov_buffer.BlockId = aboveBlock.Id
+                        mov_buffer.SourceId = block_list[i][3].Id
+                        mov_buffer.TargetId = target_priority(world, block_list[i][3])
+                        return schedule
+        #9.17
+
+
+    top_block, top_block_buf = top_priority(world)
+
+    if len(world.Production.BottomToTop) == world.Production.MaxHeight:
+        arrival_block = world.Production.BottomToTop[-1]
+        
+        if top_block.Ready and world.Handover.Ready:
+            mov_handover = schedule.Moves.add()
+            mov_handover.BlockId = top_block.Id
+            mov_handover.SourceId = top_block_buf.Id
+            mov_handover.TargetId = world.Handover.Id
+
+            mov_buffer = schedule.Moves.add()
+            mov_buffer.BlockId = arrival_block.Id
+            mov_buffer.SourceId = world.Production.Id
+            mov_buffer.TargetId = except_target_priority(world, world.Production, top_block, top_block_buf)
+            return schedule
+
+        mov = schedule.Moves.add()
+        mov.BlockId = arrival_block.Id
+        mov.SourceId = world.Production.Id
+        mov.TargetId = target_priority(world, world.Production)
+        return schedule
+    
+    block_list = total_block(world)
+    
+    for i in range(len(block_list)):
+        if block_list[i][0]:
+            if block_list[i][2] == block_list[i][3].BottomToTop[-1]:
+                if world.Handover.Ready:
+                    mov_handover = schedule.Moves.add()
+                    mov_handover.BlockId = block_list[i][2].Id
+                    mov_handover.SourceId = block_list[i][3].Id
+                    mov_handover.TargetId = world.Handover.Id
+                    return schedule
+
+                elif len(block_list[i][3].BottomToTop) == 1:
+                    mov_buffer = schedule.Moves.add()
+                    mov_buffer.BlockId = block_list[i][2].Id
+                    mov_buffer.SourceId = block_list[i][3].Id
+                    mov_buffer.TargetId = target_priority(world, block_list[i][3])
+                    return schedule
+
+                else:
+                    continue
+
+            else:
+                aboveBlock = block_list[i][3].BottomToTop[-1]
+                
+                if aboveBlock.Ready and world.Handover.Ready:
+                    mov_handover = schedule.Moves.add()
+                    mov_handover.BlockId = aboveBlock.Id
+                    mov_handover.SourceId = block_list[i][3].Id
+                    mov_handover.TargetId = world.Handover.Id
+                    return schedule
+
+                else:
+                    mov_buffer = schedule.Moves.add()
+                    mov_buffer.BlockId = aboveBlock.Id
+                    mov_buffer.SourceId = block_list[i][3].Id
+                    mov_buffer.TargetId = target_priority(world, block_list[i][3])
+                    return schedule
+        else:
+            sourceList = source_priority(world)
+            for block, buf in sourceList:
+                if block == buf.BottomToTop[-1]:
+                    if len(buf.BottomToTop) == 1:
+                        mov_buffer = schedule.Moves.add()
+                        mov_buffer.BlockId = block.Id
+                        mov_buffer.SourceId = buf.Id
+                        mov_buffer.TargetId = target_priority(world, buf)
+                        return schedule
+                    else:
+                        continue
+                    
+                mov_buffer = schedule.Moves.add()
+                mov_buffer.BlockId = buf.BottomToTop[-1].Id
+                mov_buffer.SourceId = buf.Id
+                mov_buffer.TargetId = target_priority(world, buf)
                 return schedule
-        '''
-        for buf in world.Buffers:
-            if buf.MaxHeight > len(buf.BottomToTop):
-                mov = schedule.Moves.add()
-                mov.BlockId = block.Id
-                mov.SourceId = world.Production.Id
-                mov.TargetId = buf.Id
-                return schedule
-        '''
+
     return None
