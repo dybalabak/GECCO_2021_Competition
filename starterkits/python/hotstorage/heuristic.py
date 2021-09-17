@@ -84,17 +84,34 @@ def check_block_percentage(world, check_percentage):
     for buf in world.Buffers:
         buf_total_count += buf.MaxHeight
         buf_count += len(buf.BottomToTop)
-    print('buf_total_count', buf_total_count)
-    print('buf_count', buf_count)
-    if buf_count / buf_total_count > check_percentage:
-        print('//', buf_count / buf_total_count)
-        return 1
+    if buf_count / buf_total_count > check_percentage:    
+        return True
     else:
-        return 0
+        return False
 
 def check_empty_block_space(world):
-    buf_count = 0
-    aboveBlock = block_list[i][3].BottomToTop[-1]
+    block_list = total_block(world)
+    block_space = 0
+    for buf in world.Buffers:
+        if block_list[0][3] == buf:
+            continue
+        else:
+            block_space += (buf.MaxHeight - len(buf.BottomToTop))
+
+    above_count = 0
+    min_time = float('inf')
+    min_time_index = -1
+    for index , block in enumerate(block_list[0][3].BottomToTop):
+        if min_time > block.Due.MilliSeconds:
+            min_time = block.Due.MilliSeconds
+            min_time_index = index
+    above_count = len(block_list[0][3].BottomToTop) - min_time_index - 1
+
+    if block_space < above_count + 1:
+        return True
+    else:
+        return False
+
     
 
 
@@ -105,7 +122,7 @@ def crane_schedule(world):
     schedule = CraneSchedule()
 
     #9.17
-    if check_block_percentage(world, 0.8):
+    if check_empty_block_space(world):
         block_list = total_block(world)
         for i in range(len(block_list)):
             if block_list[i][0]:
@@ -123,9 +140,9 @@ def crane_schedule(world):
                         mov_buffer.SourceId = block_list[i][3].Id
                         mov_buffer.TargetId = target_priority(world, block_list[i][3])
                         return schedule
-
-                    else:
-                        continue
+                    
+                    #else:
+                    #    continue
 
                 else:
                     aboveBlock = block_list[i][3].BottomToTop[-1]

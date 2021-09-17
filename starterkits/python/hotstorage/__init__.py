@@ -8,7 +8,7 @@ def plan_moves(world_data, use_heuristic):
         crane_schedule = heuristic.crane_schedule(world)
     else:
         crane_schedule = search.crane_schedule(world)
-    print(world, use_heuristic, crane_schedule)
+    #print(world, use_heuristic, crane_schedule)
     if crane_schedule:
         crane_schedule.SequenceNr = world.Crane.Schedule.SequenceNr + 1
     return crane_schedule
