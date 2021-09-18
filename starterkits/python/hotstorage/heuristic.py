@@ -178,8 +178,8 @@ def crane_schedule(world):
                         return schedule
                     elif len(block_list[i][1].BottomToTop) == 1 and not world.Handover.Ready:
                         
-                        return None
-
+                        return None                    
+                        
                     elif len(block_list[i][1].BottomToTop) == 1:
                         mov_buffer = schedule.Moves.add()
                         mov_buffer.BlockId = block_list[i][0].Id
@@ -192,7 +192,7 @@ def crane_schedule(world):
 
                 else:
                     aboveBlock = block_list[i][1].BottomToTop[-1]
-                    
+                                        
                     if aboveBlock.Ready and world.Handover.Ready:
                         mov_handover = schedule.Moves.add()
                         mov_handover.BlockId = aboveBlock.Id
@@ -200,7 +200,17 @@ def crane_schedule(world):
                         mov_handover.TargetId = world.Handover.Id
                         return schedule
                     else:
-                        print('c')
+                        # single ready to handover
+                        for buf in world.Buffers:
+                            if len(buf.BottomToTop) == 1 and buf.BottomToTop[0].Ready:
+                                mov_handover = schedule.Moves.add()
+                                mov_handover.BlockId = buf.BottomToTop[0].Id
+                                mov_handover.SourceId = buf.Id
+                                mov_handover.TargetId = world.Handover.Id
+
+                                return schedule
+
+
                         mov_buffer = schedule.Moves.add()
                         mov_buffer.BlockId = aboveBlock.Id
                         mov_buffer.SourceId = block_list[i][1].Id
