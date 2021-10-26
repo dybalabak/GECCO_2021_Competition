@@ -8,6 +8,14 @@ I got the result by creating a meta-rule and implementing the additional rules b
 
 [2021최종보고서_07_개발중독자_블록 장치장을 위한 크레인 작업 할당 정책 최적화.pdf](https://github.com/dybalabak/GECCO_2021_Competition/files/7290017/2021._07_._.pdf)
 
+siple acting video for 3stacks
+간단한 구동영상
+
+
+https://user-images.githubusercontent.com/59384141/138918763-967c90ae-bcb8-4409-9edc-3b47f4204e10.mp4
+
+
+
 
 <!--
 **dynstack/dynstack** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
